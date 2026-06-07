@@ -1,11 +1,18 @@
 name: "Triage: AI"
 
 # AI-assisted issue triage using GitHub Models (actions/ai-inference).
-# On a new issue it asks a model to classify the issue against the AmbleKit
-# label taxonomy, then applies labels, sets the issue type, sets the org
-# Priority/Effort fields (best effort), and leaves a triage comment that
-# includes a likely-cause (bugs) / recommended-implementation (features) note.
-# If the model output can't be parsed it falls back to "S: Untriaged".
+# On a new/reopened issue (or manual dispatch) it asks a model to classify the
+# issue against the AmbleKit label taxonomy, applies labels, sets the org
+# Priority/Effort fields (best effort), and posts a triage comment with a
+# likely-cause (bugs) / recommended-implementation (features) note.
+#
+# Idempotent: the comment carries a hidden <!-- auto-triage --> marker, so a
+# re-run edits the existing comment instead of stacking a new one. On a re-run
+# of an already-triaged issue it refreshes only the comment and leaves labels
+# untouched, so it never clobbers a maintainer's later label edits.
+#
+# If the model output can't be parsed it falls back to "S: Untriaged" (only on
+# the first triage).
 
 on:
   issues:
@@ -102,7 +109,7 @@ jobs:
               "effort": "High" | "Medium" | "Low",
               "difficulty": "DB" | "D3" | "D2" | "D1" | "D0",
               "areas": [ subset of: "A: Suits","A: Powers","A: Entities","A: Datagen","A: Admin Tooling","A: Core Tech","A: Build","A: Docs" ],
-              "changes": [ subset of: "C: Render","C: UI","C: Networking","C: Textures","C: Audio","C: Translations","C: Structures","C: No Java" ],
+              "changes": [ subset of: "C: Render","C: UI","C: Networking","C: Textures","C: Audio","C: Translations" ],
               "summary": "one short lowercase sentence",
               "insight": "for a Bug: 2-4 sentences on the most likely cause, naming the suspect subsystem/class/package; for a Feature: 2-4 sentences on a recommended implementation approach, pointing at where in the codebase it would go; for a Task: empty string",
               "needs_info": true | false
@@ -128,6 +135,14 @@ jobs:
         run: |
           set -uo pipefail
 
+          MARKER="<!-- auto-triage -->"
+          # find our previous triage comment (if any). its presence means this issue
+          # was already triaged, so a re-run refreshes the comment but leaves labels
+          # and fields alone - never clobbering a maintainer's later edits.
+          CID=$(gh api "repos/$REPO/issues/$NUM/comments" --paginate \
+            --jq "[.[] | select(.body | contains(\"$MARKER\")) | .id] | last // empty" 2>/dev/null || true)
+          FIRST_TRIAGE=true; [ -n "$CID" ] && FIRST_TRIAGE=false
+
           # prefer the whole response if it already parses as json (expected case:
           # the model is asked for one line of minified json). otherwise strip any
           # code fences and fall back to the first {...} block.
@@ -139,14 +154,14 @@ jobs:
           echo "model json: $JSON"
 
           if [ -z "$JSON" ] || ! printf '%s' "$JSON" | jq -e . >/dev/null 2>&1; then
-            echo "no valid json -> S: Untriaged"
-            gh issue edit "$NUM" --repo "$REPO" --add-label "S: Untriaged" || true
+            if [ "$FIRST_TRIAGE" = "true" ]; then
+              echo "no valid json -> S: Untriaged"
+              gh issue edit "$NUM" --repo "$REPO" --add-label "S: Untriaged" || true
+            else
+              echo "no valid json on re-triage -> leaving already-triaged issue untouched"
+            fi
             exit 0
           fi
-
-          # a previous run may have left S: Untriaged - clear it now that we have a
-          # valid classification so the issue isn't both triaged and untriaged.
-          gh issue edit "$NUM" --repo "$REPO" --remove-label "S: Untriaged" >/dev/null 2>&1 || true
 
           TYPE=$(echo "$JSON" | jq -r '.type // empty')
           PRIORITY=$(echo "$JSON" | jq -r '.priority // empty')
@@ -156,75 +171,79 @@ jobs:
           INSIGHT=$(echo "$JSON" | jq -r '.insight // empty' | tr '\r\n' ' ' | cut -c1-1200)
           NEEDS=$(echo "$JSON" | jq -r '.needs_info // false')
 
-          LABELS=()
-          case "$TYPE" in
-            Bug) LABELS+=("T: Bugfix");;
-            Feature) LABELS+=("T: New Feature");;
-            # Task has no T: label in the taxonomy - it's conveyed by the GitHub
-            # issue type set further down, so no label is added here on purpose.
-          esac
-          case "$PRIORITY" in
-            Urgent) LABELS+=("P0: Critical");;
-            High) LABELS+=("P1: High");;
-            Medium) LABELS+=("P2: Raised");;
-            Low) LABELS+=("P3: Standard");;
-          esac
-          case "$DIFF" in
-            DB) LABELS+=("DB: Beginner Friendly");;
-            D3) LABELS+=("D3: Low");;
-            D2) LABELS+=("D2: Medium");;
-            D1) LABELS+=("D1: High");;
-            D0) LABELS+=("D0: Very High");;
-          esac
-          # allowlist the model's area/change labels to the documented taxonomy so a
-          # stray (but repo-existing) label can't sneak in if the model goes off-schema.
-          declare -A ALLOWED_AC=(
-            ["A: Suits"]=1 ["A: Powers"]=1 ["A: Entities"]=1 ["A: Datagen"]=1
-            ["A: Admin Tooling"]=1 ["A: Core Tech"]=1 ["A: Build"]=1 ["A: Docs"]=1
-            ["C: Render"]=1 ["C: UI"]=1 ["C: Networking"]=1 ["C: Textures"]=1
-            ["C: Audio"]=1 ["C: Translations"]=1 ["C: Structures"]=1 ["C: No Java"]=1
-          )
-          while IFS= read -r l; do
-            [ -n "$l" ] && [ -n "${ALLOWED_AC[$l]:-}" ] && LABELS+=("$l")
-          done < <(echo "$JSON" | jq -r '((.areas // []) + (.changes // []))[]')
-          [ "$NEEDS" = "true" ] && LABELS+=("Issue: Awaiting Response")
+          # labels + fields are only touched on the FIRST triage. on a re-run we keep
+          # whatever the maintainers have set and just refresh the comment below.
+          if [ "$FIRST_TRIAGE" = "true" ]; then
+            # clear S: Untriaged now that we have a valid classification.
+            gh issue edit "$NUM" --repo "$REPO" --remove-label "S: Untriaged" >/dev/null 2>&1 || true
 
-          # only apply labels that actually exist in the repo - page through all of
-          # them into a set for O(1) membership instead of a nested scan.
-          declare -A HAVE
-          while IFS= read -r e; do [ -n "$e" ] && HAVE["$e"]=1; done \
-            < <(gh api "repos/$REPO/labels" --paginate --jq '.[].name')
-          ADD=()
-          for l in "${LABELS[@]:-}"; do
-            [ -n "${HAVE[$l]:-}" ] && ADD+=("--add-label" "$l")
-          done
-          if [ "${#ADD[@]}" -gt 0 ]; then
-            gh issue edit "$NUM" --repo "$REPO" "${ADD[@]}" || true
+            LABELS=()
+            case "$TYPE" in
+              Bug) LABELS+=("T: Bugfix");;
+              Feature) LABELS+=("T: New Feature");;
+              # Task has no T: label in the taxonomy on purpose.
+            esac
+            case "$PRIORITY" in
+              Urgent) LABELS+=("P0: Critical");;
+              High) LABELS+=("P1: High");;
+              Medium) LABELS+=("P2: Raised");;
+              Low) LABELS+=("P3: Standard");;
+            esac
+            case "$DIFF" in
+              DB) LABELS+=("DB: Beginner Friendly");;
+              D3) LABELS+=("D3: Low");;
+              D2) LABELS+=("D2: Medium");;
+              D1) LABELS+=("D1: High");;
+              D0) LABELS+=("D0: Very High");;
+            esac
+            # allowlist the model's area/change labels. note: diff-derived changes
+            # (C: No Java, C: Structures) are intentionally NOT here - those are decided
+            # from a PR's changed files by .github/labeler.yml, not guessable from an issue.
+            declare -A ALLOWED_AC=(
+              ["A: Suits"]=1 ["A: Powers"]=1 ["A: Entities"]=1 ["A: Datagen"]=1
+              ["A: Admin Tooling"]=1 ["A: Core Tech"]=1 ["A: Build"]=1 ["A: Docs"]=1
+              ["C: Render"]=1 ["C: UI"]=1 ["C: Networking"]=1 ["C: Textures"]=1
+              ["C: Audio"]=1 ["C: Translations"]=1
+            )
+            while IFS= read -r l; do
+              [ -n "$l" ] && [ -n "${ALLOWED_AC[$l]:-}" ] && LABELS+=("$l")
+            done < <(echo "$JSON" | jq -r '((.areas // []) + (.changes // []))[]')
+            [ "$NEEDS" = "true" ] && LABELS+=("Issue: Awaiting Response")
+
+            # only apply labels that actually exist in the repo - page through all of
+            # them into a set for O(1) membership instead of a nested scan.
+            declare -A HAVE
+            while IFS= read -r e; do [ -n "$e" ] && HAVE["$e"]=1; done \
+              < <(gh api "repos/$REPO/labels" --paginate --jq '.[].name')
+            ADD=()
+            for l in "${LABELS[@]:-}"; do
+              [ -n "${HAVE[$l]:-}" ] && ADD+=("--add-label" "$l")
+            done
+            if [ "${#ADD[@]}" -gt 0 ]; then
+              gh issue edit "$NUM" --repo "$REPO" "${ADD[@]}" || true
+            fi
+
+            # org Priority/Effort issue fields (best effort)
+            RID=$(gh api "repos/$REPO" --jq '.id')
+            set_field() {
+              [ -z "$2" ] && return 0
+              # build the payload with jq so the value is properly json-escaped
+              jq -n --argjson fid "$1" --arg val "$2" \
+                '{issue_field_values:[{field_id:$fid,value:$val}]}' \
+                | gh api --method POST "repositories/$RID/issues/$NUM/issue-field-values" --input - >/dev/null 2>&1 \
+                || echo "field $1 not set"
+            }
+            # ids default to this org's Priority/Effort fields; override via the
+            # PRIORITY_FIELD_ID / EFFORT_FIELD_ID Actions variables if they differ.
+            set_field "${PRIORITY_FIELD_ID:-30052706}" "$PRIORITY"
+            set_field "${EFFORT_FIELD_ID:-30052709}" "$EFFORT"
+          else
+            echo "re-triage: refreshing comment only, leaving labels/fields as-is"
           fi
 
-          # GitHub issue type (best effort - org-level)
-          if [ -n "$TYPE" ]; then
-            gh api --method PATCH "repos/$REPO/issues/$NUM" -f type="$TYPE" >/dev/null 2>&1 \
-              || echo "issue type not set (token may lack org perms)"
-          fi
-
-          # org Priority/Effort issue fields (best effort)
-          RID=$(gh api "repos/$REPO" --jq '.id')
-          set_field() {
-            [ -z "$2" ] && return 0
-            # build the payload with jq so the value is properly json-escaped
-            jq -n --argjson fid "$1" --arg val "$2" \
-              '{issue_field_values:[{field_id:$fid,value:$val}]}' \
-              | gh api --method POST "repositories/$RID/issues/$NUM/issue-field-values" --input - >/dev/null 2>&1 \
-              || echo "field $1 not set"
-          }
-          # ids default to this org's Priority/Effort fields; override via the
-          # PRIORITY_FIELD_ID / EFFORT_FIELD_ID Actions variables if they differ.
-          set_field "${PRIORITY_FIELD_ID:-30052706}" "$PRIORITY"
-          set_field "${EFFORT_FIELD_ID:-30052709}" "$EFFORT"
-
-          # triage comment
+          # triage comment (hidden marker first so re-runs can find + edit it)
           {
+            echo "$MARKER"
             echo "🤖 **auto-triage** (github models)"
             echo
             echo "| type | priority | effort | difficulty |"
@@ -243,8 +262,17 @@ jobs:
               echo "$INSIGHT"
               echo
             fi
-            [ "$NEEDS" = "true" ] && echo "looks like it's missing repro steps / logs - added \`Issue: Awaiting Response\`."
+            [ "$NEEDS" = "true" ] && [ "$FIRST_TRIAGE" = "true" ] && echo "looks like it's missing repro steps / logs - added \`Issue: Awaiting Response\`."
+            [ "$FIRST_TRIAGE" = "false" ] && echo "_(re-triage: labels left as set by maintainers)_"
             echo
             echo "_labels and insight are a best guess, a maintainer will confirm._"
           } > "$RUNNER_TEMP/comment.md"
-          gh issue comment "$NUM" --repo "$REPO" --body-file "$RUNNER_TEMP/comment.md" || true
+
+          if [ -n "$CID" ]; then
+            jq -Rs '{body: .}' "$RUNNER_TEMP/comment.md" \
+              | gh api --method PATCH "repos/$REPO/issues/comments/$CID" --input - >/dev/null \
+              && echo "updated existing triage comment $CID" || echo "comment update failed"
+          else
+            gh issue comment "$NUM" --repo "$REPO" --body-file "$RUNNER_TEMP/comment.md" >/dev/null \
+              && echo "posted triage comment" || true
+          fi
