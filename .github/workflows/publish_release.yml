@@ -42,7 +42,6 @@ jobs:
 
       - name: Run Datagen
         run: ./gradlew runDatagen
-        continue-on-error: true
 
       - name: Build
         run: ./gradlew clean build

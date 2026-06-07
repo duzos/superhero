@@ -243,7 +243,7 @@ jobs:
               echo "$INSIGHT"
               echo
             fi
-            [ "$NEEDS" = "true" ] && echo "looks like its missing repro steps / logs - added \`Issue: Awaiting Response\`."
+            [ "$NEEDS" = "true" ] && echo "looks like it's missing repro steps / logs - added \`Issue: Awaiting Response\`."
             echo
             echo "_labels and insight are a best guess, a maintainer will confirm._"
           } > "$RUNNER_TEMP/comment.md"

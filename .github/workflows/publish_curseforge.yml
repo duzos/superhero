@@ -39,7 +39,6 @@ jobs:
 
       - name: Run Datagen
         run: ./gradlew runDatagen
-        continue-on-error: true
 
       - name: Build
         run: ./gradlew clean build
@@ -55,7 +54,6 @@ jobs:
           version: ${{ steps.versions.outputs.mod_version }}-${{ steps.versions.outputs.mc_version }}
           name: Timeless Heroes ${{ steps.versions.outputs.mod_version }} (${{ steps.versions.outputs.mc_version }} Fabric)
 
-          github-generate-changelog: true
           version-type: release
 
           loaders: fabric
