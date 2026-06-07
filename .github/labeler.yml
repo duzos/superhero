@@ -1,19 +1,21 @@
-"C: Textures":
-  - changed-files:
-      - any-glob-to-any-file: 'src/main/resources/assets/*/textures/**/*.png'
+# Path-based PR labels. Used by .github/workflows/pr-labeler.yml (actions/labeler).
+# Mirrors the AmbleKit label taxonomy. Area (A:) labels mark the subsystem a PR
+# touches; change (C:) labels mark the kind of knowledge a review needs.
 
-"C: Structures":
+"A: Suits":
   - changed-files:
       - any-glob-to-any-file:
-          - 'src/main/resources/data/*/structures/**/*.nbt'
+          - 'src/main/java/mc/duzo/timeless/suit/**/*.java'
 
-#"Changes: UI":
-#  - changed-files:
-#      - any-glob-to-any-file: '**/*.xml*'
+"A: Powers":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/main/java/mc/duzo/timeless/power/**/*.java'
 
-#"Changes: Shaders":
-#  - changed-files:
-#      - any-glob-to-any-file: '**/*.glsl'
+"A: Entities":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/main/java/mc/duzo/timeless/core/entities/**/*.java'
 
 "A: Datagen":
   - changed-files:
@@ -23,13 +25,74 @@
 "A: Admin Tooling":
   - changed-files:
       - any-glob-to-any-file:
-          - 'src/main/java/mc/duzo/timeless/core/commands/**/*.java'
+          - 'src/main/java/mc/duzo/timeless/commands/**/*.java'
+
+"A: Core Tech":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/main/java/mc/duzo/timeless/Timeless.java'
+          - 'src/main/java/mc/duzo/timeless/mixin/**/*.java'
+          - 'src/main/java/mc/duzo/timeless/core/**/*.java'
+          - 'src/main/java/mc/duzo/timeless/block/**/*.java'
+          - 'src/main/java/mc/duzo/timeless/util/**/*.java'
+
+"A: Build":
+  - changed-files:
+      - any-glob-to-any-file:
+          - '*.gradle'
+          - 'gradle/**'
+          - 'gradle.properties'
+          - 'settings.gradle'
+          - '.github/**'
+
+"A: Docs":
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+
+"C: Render":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/main/java/mc/duzo/timeless/**/client/**/*.java'
+          - 'src/main/java/mc/duzo/timeless/mixin/client/**/*.java'
+          - 'src/main/java/mc/duzo/animation/**/*.java'
+          - 'src/main/resources/assets/*/shaders/**'
+
+"C: UI":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/main/java/mc/duzo/timeless/client/gui/**/*.java'
+
+"C: Networking":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/main/java/mc/duzo/timeless/network/**/*.java'
+
+"C: Textures":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/main/resources/assets/*/textures/**/*.png'
 
 "C: Audio":
   - changed-files:
-      - any-glob-to-any-file: 'src/main/resources/assets/*/sounds/**/*.ogg'
+      - any-glob-to-any-file:
+          - 'src/main/resources/assets/*/sounds/**/*.ogg'
+
+"C: Translations":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/main/resources/assets/*/lang/**/*.json'
+
+"C: Structures":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/main/resources/data/*/structures/**/*.nbt'
 
 "C: No Java":
   - changed-files:
-      # Equiv to any-glob-to-all as long as this has one matcher. If ALL changed files are not Java files, then apply label.
-      - all-globs-to-all-files: "!src/main/java/**/*.java"
+      # applies when every changed file is non-java: '**' matches all files,
+      # then the negative glob requires none of them to be java. a negative-only
+      # rule never matches in actions/labeler, hence the '**' catch-all.
+      - all-globs-to-all-files:
+          - '**'
+          - '!src/main/java/**/*.java'
