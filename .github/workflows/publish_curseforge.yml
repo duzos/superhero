@@ -1,0 +1,63 @@
+name: Publish (CurseForge only)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fabric:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle Wrapper Executable
+        if: ${{ runner.os != 'Windows' }}
+        run: chmod +x ./gradlew
+
+      - name: Read versions
+        id: versions
+        shell: bash
+        run: |
+          MV=$(grep -E '^mod_version\s*=' gradle.properties | cut -d= -f2- | xargs)
+          MCV=$(grep -E '^minecraft_version\s*=' gradle.properties | cut -d= -f2- | xargs)
+          echo "mod_version=$MV" >> "$GITHUB_OUTPUT"
+          echo "mc_version=$MCV" >> "$GITHUB_OUTPUT"
+
+      - name: Run Datagen
+        run: ./gradlew runDatagen
+        continue-on-error: true
+
+      - name: Build
+        run: ./gradlew clean build
+
+      - name: Publish
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          changelog-file: CHANGELOG.md
+
+          curseforge-id: 871545
+          curseforge-token: "${{ secrets.CURSEFORGE_TOKEN }}"
+
+          version: ${{ steps.versions.outputs.mod_version }}-${{ steps.versions.outputs.mc_version }}
+          name: Timeless Heroes ${{ steps.versions.outputs.mod_version }} (${{ steps.versions.outputs.mc_version }} Fabric)
+
+          github-generate-changelog: true
+          version-type: release
+
+          loaders: fabric
+          java: 17
+          files: build/libs/!(*-@(dev|sources|javadoc)).jar
