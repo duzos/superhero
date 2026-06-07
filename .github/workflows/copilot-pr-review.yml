@@ -1,9 +1,11 @@
 name: "Review: Copilot"
 
 # Requests a GitHub Copilot code review on newly opened (and ready-for-review)
-# PRs. Copilot can't be added via the REST reviewers API, so this uses the gh
-# CLI alias (@copilot, gh >= 2.88). No-ops gracefully if the repo/plan doesn't
-# have Copilot code review enabled, or on draft PRs (Copilot won't review those).
+# PRs. Copilot can't be added via the REST reviewers API, and the gh CLI alias
+# (@copilot) silently no-ops on gh < 2.88, so this uses the GraphQL requestReviews
+# mutation with the global Copilot reviewer bot node id (copilot-pull-request-
+# reviewer). No-ops gracefully if the repo/plan doesn't have Copilot code review
+# enabled, and skips drafts (Copilot won't review those).
 
 on:
   pull_request_target:
@@ -21,8 +23,9 @@ jobs:
       - name: Request Copilot review
         env:
           GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          PR: ${{ github.event.pull_request.number }}
+          PR_NODE_ID: ${{ github.event.pull_request.node_id }}
         run: |
-          gh pr edit "$PR" --repo "$REPO" --add-reviewer "@copilot" \
+          gh api graphql \
+            -f query='mutation($pr:ID!){ requestReviews(input:{pullRequestId:$pr, botIds:["BOT_kgDOCnlnWA"], union:true}){ clientMutationId } }' \
+            -F pr="$PR_NODE_ID" \
             || echo "could not request Copilot review (code review may be disabled for this repo/plan)"
