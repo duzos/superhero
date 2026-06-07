@@ -1,0 +1,28 @@
+name: "Review: Copilot"
+
+# Requests a GitHub Copilot code review on newly opened (and ready-for-review)
+# PRs. Copilot can't be added via the REST reviewers API, so this uses the gh
+# CLI alias (@copilot, gh >= 2.88). No-ops gracefully if the repo/plan doesn't
+# have Copilot code review enabled, or on draft PRs (Copilot won't review those).
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  request-review:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Request Copilot review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr edit "$PR" --repo "$REPO" --add-reviewer "@copilot" \
+            || echo "could not request Copilot review (code review may be disabled for this repo/plan)"
