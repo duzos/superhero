@@ -27,3 +27,4 @@
 - ci: route changelog push through BOT_TOKEN PAT | by [@duzos](https://github.com/duzos) ([#78](https://github.com/amblelabs/superhero/pull/78))
 - ci: push changelog via deploy key, drop BOT_TOKEN dependency | by [@duzos](https://github.com/duzos) ([#79](https://github.com/amblelabs/superhero/pull/79))
 - ci: label taxonomy, AI/Copilot automation, and split release workflows | by [@duzos](https://github.com/duzos) ([#80](https://github.com/duzos/superhero/pull/80))
+- ci: harden AI triage (idempotent, non-clobbering, tighter labels) | by [@duzos](https://github.com/duzos) ([#85](https://github.com/duzos/superhero/pull/85))
