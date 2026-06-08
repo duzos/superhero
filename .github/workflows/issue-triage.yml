@@ -139,9 +139,22 @@ jobs:
           # find our previous triage comment (if any). its presence means this issue
           # was already triaged, so a re-run refreshes the comment but leaves labels
           # and fields alone - never clobbering a maintainer's later edits.
-          CID=$(gh api "repos/$REPO/issues/$NUM/comments" --paginate \
-            --jq "[.[] | select(.body | contains(\"$MARKER\")) | .id] | last // empty" 2>/dev/null || true)
-          FIRST_TRIAGE=true; [ -n "$CID" ] && FIRST_TRIAGE=false
+          #
+          # distinguish "lookup succeeded, no marker" (genuinely first triage) from
+          # "lookup failed" (transient api/auth/network error). on failure we must NOT
+          # default to first-triage, or a flaky api call could re-apply labels over a
+          # maintainer's edits - so fail safe: assume re-triage (no label/field changes).
+          # stderr is left visible on purpose: the if/else handles failure, so any
+          # gh error (auth/scope/rate/network) should show up in the run log.
+          if CID_RAW=$(gh api "repos/$REPO/issues/$NUM/comments" --paginate \
+               --jq "[.[] | select(.body | contains(\"$MARKER\")) | .id] | last // empty"); then
+            # --paginate emits one (possibly empty) line per page; keep the matched id.
+            CID=$(printf '%s\n' "$CID_RAW" | grep -E '^[0-9]+$' | tail -1 || true)
+            FIRST_TRIAGE=true; [ -n "$CID" ] && FIRST_TRIAGE=false
+          else
+            echo "comment lookup failed - treating as re-triage so labels/fields aren't clobbered"
+            CID=""; FIRST_TRIAGE=false
+          fi
 
           # prefer the whole response if it already parses as json (expected case:
           # the model is asked for one line of minified json). otherwise strip any
