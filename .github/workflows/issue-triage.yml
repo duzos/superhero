@@ -144,8 +144,10 @@ jobs:
           # "lookup failed" (transient api/auth/network error). on failure we must NOT
           # default to first-triage, or a flaky api call could re-apply labels over a
           # maintainer's edits - so fail safe: assume re-triage (no label/field changes).
+          # stderr is left visible on purpose: the if/else handles failure, so any
+          # gh error (auth/scope/rate/network) should show up in the run log.
           if CID_RAW=$(gh api "repos/$REPO/issues/$NUM/comments" --paginate \
-               --jq "[.[] | select(.body | contains(\"$MARKER\")) | .id] | last // empty" 2>/dev/null); then
+               --jq "[.[] | select(.body | contains(\"$MARKER\")) | .id] | last // empty"); then
             # --paginate emits one (possibly empty) line per page; keep the matched id.
             CID=$(printf '%s\n' "$CID_RAW" | grep -E '^[0-9]+$' | tail -1 || true)
             FIRST_TRIAGE=true; [ -n "$CID" ] && FIRST_TRIAGE=false
