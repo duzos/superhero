@@ -19,7 +19,7 @@
 
 ## What is it?
 
-Timeless Heroes brings superheroes to Fabric Minecraft. Pick a hero, suit up, and take their powers into your world — each one with its own model, abilities, and fully animated movement.
+Timeless Heroes brings superheroes to Fabric Minecraft. Pick a hero, suit up, and take their powers into your world - each one with its own model, abilities, and fully animated movement.
 
 It's in **public beta**, with more heroes and powers being added over time.
 
@@ -46,10 +46,10 @@ It's in **public beta**, with more heroes and powers being added over time.
 
 **Developers**
 - [Duzo](https://duzo.is-a.dev/)
-- [Loqor](https://loqor.dev/) — overall adjustments
+- [Loqor](https://loqor.dev/) - overall adjustments
 
 **Art**
-- [Magic Man](https://magicmaan.github.io/) — textures & models
+- [Magic Man](https://magicmaan.github.io/) - textures & models
 
 ---
 
@@ -57,6 +57,6 @@ It's in **public beta**, with more heroes and powers being added over time.
 
 [![BisectHosting](https://www.bisecthosting.com/partners/custom-banners/60f43741-8552-4ee2-b3e1-429e5cbe7dee.webp)](https://www.bisecthosting.com/duzo)
 
-Sponsored by BisectHosting — use code [**`duzo`**](https://www.bisecthosting.com/duzo) for **25% off**.
+Sponsored by BisectHosting - use code [**`duzo`**](https://www.bisecthosting.com/duzo) for **25% off**.
 
 </div>
