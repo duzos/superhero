@@ -1,47 +1,62 @@
-![Title](https://raw.githubusercontent.com/Duzos/superhero/master/src/main/resources/assets/timeless/icon.png)
+<div align="center">
 
-![GitHub Release](https://img.shields.io/github/v/release/duzos/superhero?include_prereleases)
-![Modrinth Game Versions](https://img.shields.io/modrinth/game-versions/superhero)
+<img src="https://raw.githubusercontent.com/Duzos/superhero/master/src/main/resources/assets/timeless/icon.png" height="120" alt="Timeless Heroes">
 
-![Modrinth Downloads](https://img.shields.io/modrinth/dt/superhero?logo=modrinth)
-![CurseForge Downloads](https://img.shields.io/curseforge/dt/871545?logo=curseforge&color=red)
+# Timeless Heroes
 
+### Suit up. Your favourite superheroes, in Minecraft.
+
+![Minecraft](https://img.shields.io/badge/Minecraft-1.20.1-62B47A?style=for-the-badge)
+![GitHub Release](https://img.shields.io/github/v/release/duzos/superhero?include_prereleases&style=for-the-badge)
+
+[<img alt="curseforge" height="52" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/curseforge_vector.svg">](https://www.curseforge.com/minecraft/mc-mods/timeless-heroes)
+[<img alt="modrinth" height="52" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/modrinth_vector.svg">](https://modrinth.com/mod/superhero)
+[<img alt="fabric" height="52" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/supported/fabric_vector.svg">](https://fabricmc.net/)
 
 **by [Duzo](https://duzo.is-a.dev/)**
 
-![](https://www.bisecthosting.com/partners/custom-banners/60f43741-8552-4ee2-b3e1-429e5cbe7dee.webp)
+</div>
 
-This project is sponsored by BisectHosting!
-Use code [duzo](https://www.bisecthosting.com/duzo) for **25%** OFF!
+## What is it?
 
-## What does this mod do?
-- Adds many of your favourite Superheroes into Minecraft!
-- TODO - finish this lol
+Timeless Heroes brings superheroes to Fabric Minecraft. Pick a hero, suit up, and take their powers into your world — each one with its own model, abilities, and fully animated movement.
 
-## Dependencies
+It's in **public beta**, with more heroes and powers being added over time.
 
-- [Fabric API](https://fabricmc.net/)
-- [Animator](https://modrinth.com/mod/animator)
+## Features
+
+- Playable superhero suits, each with their own look and abilities
+- Custom models and textures by [Magic Man](https://magicmaan.github.io/)
+- Smooth first- and third-person animations, powered by the [Animator](https://modrinth.com/mod/animator) library
+
+## Requirements
+
+- Minecraft **1.20.1** (Fabric)
+- [Fabric API](https://modrinth.com/mod/fabric-api)
+- [AmbleKit](https://modrinth.com/mod/amblekit) `>= 1.1.9`
+- Java **17+**
+
+## Links
+
+- [Modrinth](https://modrinth.com/mod/superhero)
+- [CurseForge](https://www.curseforge.com/minecraft/mc-mods/timeless-heroes)
+- [Releases (public beta)](https://github.com/Duzos/superhero/releases)
 
 ## Credits
 
-### Developers:
+**Developers**
 - [Duzo](https://duzo.is-a.dev/)
+- [Loqor](https://loqor.dev/) — overall adjustments
+
+**Art**
+- [Magic Man](https://magicmaan.github.io/) — textures & models
 
 ---
 
-### Artists:
-- [Magic Man](https://magicmaan.github.io/) (textures + models) 
-- [Loqor](https://loqor.dev/) (overall adjustments)
+<div align="center">
 
----
+[![BisectHosting](https://www.bisecthosting.com/partners/custom-banners/60f43741-8552-4ee2-b3e1-429e5cbe7dee.webp)](https://www.bisecthosting.com/duzo)
 
-## Links
-### [PUBLIC BETA](https://github.com/Duzos/superhero/releases)
+Sponsored by BisectHosting — use code [**`duzo`**](https://www.bisecthosting.com/duzo) for **25% off**.
 
-[Github](https://github.com/duzos/superhero/)
-
-[Curseforge](https://www.curseforge.com/minecraft/mc-mods/timeless-heroes)
-
-[Modrinth](https://modrinth.com/mod/superhero)
-
+</div>
